@@ -23,6 +23,7 @@ import {
 import Platform from '../Common/Platform';
 import Cache from '../Cache';
 import { ICognitoUserPoolData, ICognitoUserData } from 'amazon-cognito-identity-js';
+import { AsyncStorageCache } from '../Cache/reactnative';
 
 const logger = new Logger('AuthClass');
 
@@ -909,14 +910,16 @@ export default class AuthClass {
      * @param {String} user - user info
      */
     public federatedSignIn(provider, response, user) {
-        if (Platform.default.isReactNative) {
-        var that = this;
-        let setCredPromise = new Promise(function (resolve, reject) {
-            var token = response.token, expires_at = response.expires_at;
+        if (Platform.isReactNative) {
+        const that = this;
+        const setCredPromise = new Promise(function(resolve, reject) {
+            const token = response.token, expires_at = response.expires_at;
             that.setCredentialsFromFederation(provider, token, user);
             // store it into localstorage
-            var that1 = that;
-            Cache.default.setItem('federatedInfo', JSON.stringify({ provider: provider, token: token, user: user }), { priority: 1 }).then(function (federatedInfo) {
+            const that1 = that;
+            const asyncCache = Cache as AsyncStorageCache;
+            asyncCache.setItem('federatedInfo', JSON.stringify({ provider, token, user }),
+                               { priority: 1 }).then(function(federatedInfo) {
                 dispatchAuthEvent('signIn', that1.user);
                 logger.debug('federated sign in credentials', that1.credentials);
                 resolve(that1.keepAlive());

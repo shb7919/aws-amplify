@@ -998,13 +998,31 @@ var AuthClass = /** @class */ (function () {
      * @param {String} user - user info
      */
     AuthClass.prototype.federatedSignIn = function (provider, response, user) {
-        var token = response.token, expires_at = response.expires_at;
-        this.setCredentialsFromFederation(provider, token, user);
-        // store it into localstorage
-        Cache_1.default.setItem('federatedInfo', { provider: provider, token: token, user: user }, { priority: 1 });
-        dispatchAuthEvent('signIn', this.user);
-        logger.debug('federated sign in credentials', this.credentials);
-        return this.keepAlive();
+        if (Platform_1.default.isReactNative) {
+            var that_2 = this;
+            var setCredPromise = new Promise(function (resolve, reject) {
+                var token = response.token, expires_at = response.expires_at;
+                that_2.setCredentialsFromFederation(provider, token, user);
+                // store it into localstorage
+                var that1 = that_2;
+                var asyncCache = Cache_1.default;
+                asyncCache.setItem('federatedInfo', JSON.stringify({ provider: provider, token: token, user: user }), { priority: 1 }).then(function (federatedInfo) {
+                    dispatchAuthEvent('signIn', that1.user);
+                    logger.debug('federated sign in credentials', that1.credentials);
+                    resolve(that1.keepAlive());
+                });
+            });
+            return Promise.resolve(setCredPromise);
+        }
+        else {
+            var token = response.token, expires_at = response.expires_at;
+            this.setCredentialsFromFederation(provider, token, user);
+            // store it into localstorage
+            Cache_1.default.setItem('federatedInfo', { provider: provider, token: token, user: user }, { priority: 1 });
+            dispatchAuthEvent('signIn', this.user);
+            logger.debug('federated sign in credentials', this.credentials);
+            return this.keepAlive();
+        }
     };
     /**
      * Compact version of credentials
