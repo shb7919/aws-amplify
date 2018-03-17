@@ -909,14 +909,31 @@ export default class AuthClass {
      * @param {String} user - user info
      */
     public federatedSignIn(provider, response, user) {
-        const { token, expires_at } = response;
-        this.setCredentialsFromFederation(provider, token, user);
+        if (Platform.default.isReactNative) {
+        var that = this;
+        let setCredPromise = new Promise(function (resolve, reject) {
+            var token = response.token, expires_at = response.expires_at;
+            that.setCredentialsFromFederation(provider, token, user);
+            // store it into localstorage
+            var that1 = that;
+            Cache.default.setItem('federatedInfo', JSON.stringify({ provider: provider, token: token, user: user }), { priority: 1 }).then(function (federatedInfo) {
+                dispatchAuthEvent('signIn', that1.user);
+                logger.debug('federated sign in credentials', that1.credentials);
+                resolve(that1.keepAlive());
+            });
+        });
 
-        // store it into localstorage
-        Cache.setItem('federatedInfo', { provider, token, user }, { priority: 1 });
-        dispatchAuthEvent('signIn', this.user);
-        logger.debug('federated sign in credentials', this.credentials);
-        return this.keepAlive();
+        return Promise.resolve(setCredPromise);
+        } else {
+            const { token, expires_at } = response;
+            this.setCredentialsFromFederation(provider, token, user);
+
+            // store it into localstorage
+            Cache.setItem('federatedInfo', { provider, token, user }, { priority: 1 });
+            dispatchAuthEvent('signIn', this.user);
+            logger.debug('federated sign in credentials', this.credentials);
+            return this.keepAlive();
+        }
     }
 
     /**
